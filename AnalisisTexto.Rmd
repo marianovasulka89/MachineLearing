@@ -1,0 +1,254 @@
+---
+title: "AnalisisTexto"
+author: "MV"
+date: "12/10/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+analisi de texto
+
+
+las library q vamos a usar....
+
+
+```{r}
+require(jsonlite)
+
+install.packages('wordcloud')
+
+require(wordcloud)
+
+require(tidyverse)
+```
+
+bueno...vamo a los ejerciciso ....
+
+aca descargamos  todos lso tragos, con toda la data...
+
+```{r}
+bebidas = NULL
+url_base = 'http://www.thecocktaildb.com/api/json/v1/1/search.php?f='
+letra = 'a'
+for(letra in letters){
+  print(paste('Letra:',letra))
+  dwld = fromJSON(paste(url_base,letra,sep=''))$drinks
+  bebidas = rbind(bebidas,dwld)
+  print(paste('Había',nrow(dwld),'bebidas'))
+}
+bebidas
+nrow(bebidas)
+```
+
+aca recortamos las instrucciones en aleman, ingles e italiano...
+
+```{r}
+inst_IT = bebidas[,"strInstructionsIT"]
+inst_DE =bebidas[,"strInstructionsDE"]
+inst_EN = bebidas[,"strInstructions"]
+```
+
+ahora tengo las isntrucciones... vamos a jugar con esto...
+
+para separar las paalbras por caracteres, que no sean letras...
+
+```{r}
+(str_split(inst_DE, "[^[:alpha:]]"))
+```
+
+sigo ocn el ejercicio que plantea la guia...
+
+```{r}
+str_view(stringr::words, "y$", match = TRUE)
+```
+
+```{r}
+str_view(stringr::words, "^y", match = TRUE) # fijense que $ indica final de linea
+
+```
+
+de tres caracteres, y empiece ocn Y
+
+```{r}
+str_view(stringr::words, "^y..$", match = TRUE) # fijense que $ indica final de linea
+```
+
+ejercicios...
+
+Las palabras de 4 letras
+Las palabras que tengan dos vocales seguidas
+Las palabras que empiecen con ‘w’ y terminen con ‘e’
+Las palabras que contengan ‘th’ y no empiecen con ‘a’
+
+
+```{r}
+str_view(stringr::words, "^y...$", match = TRUE)
+```
+
+```{r}
+str_view(stringr::words, "[aeiou]{2}", match = TRUE)
+```
+
+empiece W y termine con E
+
+```{r}
+str_view(stringr::words, "^w.*e$", match = TRUE)
+```
+
+Las palabras que contengan ‘th’ y no empiecen con ‘a’
+
+```{r}
+str_view(stringr::words, "[^a].*th|^th", match = TRUE)
+```
+
+graficamos las frecuencias del aleman, ordenadas descendienteemente
+
+```{r}
+words_DE = str_split(inst_DE, "[^[:alpha:]]") # aplicamos el split a todos los textos
+words_DE = table(tolower(unlist(words_DE))) # llevamos todo a minusculas y contamos las palabras
+words_DE = as.data.frame(words_DE) # convertimos en dataframe
+colnames(words_DE)[1] = 'Word' # renombramos a la columna 1 como Word
+words_DE = words_DE[words_DE$Word != '',] # Quitamos el string vacio
+words_DE %>% arrange(by=desc(Freq)) %>% # Ordenamos en forma descendiente
+             mutate(rank=row_number()) %>% # Agregamos una columna con el orden
+             ggplot(aes(x=log(rank), y=log(Freq))) +  # Graficamos
+             geom_point(shape=21, color='black', fill='white') 
+```
+
+idem IT y EN
+
+```{r}
+words_EN = str_split(inst_EN, "[^[:alpha:]]") # aplicamos el split a todos los textos
+words_EN = table(tolower(unlist(words_EN))) # llevamos todo a minusculas y contamos las palabras
+words_EN = as.data.frame(words_EN) # convertimos en dataframe
+colnames(words_EN)[1] = 'Word' # renombramos a la columna 1 como Word
+words_EN = words_EN[words_EN$Word != '',] # Quitamos el string vacio
+words_EN %>% arrange(by=desc(Freq)) %>% # Ordenamos en forma descendiente
+             mutate(rank=row_number()) %>% # Agregamos una columna con el orden
+             ggplot(aes(x=log(rank), y=log(Freq))) +  # Graficamos
+             geom_point(shape=21, color='black', fill='white') 
+
+words_IT = str_split(inst_IT, "[^[:alpha:]]") # aplicamos el split a todos los textos
+words_IT = table(tolower(unlist(words_IT))) # llevamos todo a minusculas y contamos las palabras
+words_IT = as.data.frame(words_IT) # convertimos en dataframe
+colnames(words_IT)[1] = 'Word' # renombramos a la columna 1 como Word
+words_IT = words_IT[words_IT$Word != '',] # Quitamos el string vacio
+words_IT %>% arrange(by=desc(Freq)) %>% # Ordenamos en forma descendiente
+             mutate(rank=row_number()) %>% # Agregamos una columna con el orden
+             ggplot(aes(x=log(rank), y=log(Freq))) +  # Graficamos
+             geom_point(shape=21, color='black', fill='white') 
+```
+
+nube de palabras...
+
+```{r}
+require(wordcloud)
+
+wordcloud(words = words_DE$Word, freq = words_DE$Freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
+nube IT y EN
+
+```{r}
+wordcloud(words = words_IT$Word, freq = words_IT$Freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+
+
+```
+
+ingles
+
+```{r}
+wordcloud(words = words_EN$Word, freq = words_EN$Freq, min.freq = 1,           max.words=200, random.order=FALSE, rot.per=0.35,            colors=brewer.pal(8, "Dark2"))
+```
+
+
+
+TF-IDF
+
+```{r}
+install.packages('tidytext')
+library(tidytext)
+
+
+words_en <- tibble(text=inst_EN, doc=1:length(inst_EN)) %>%
+            unnest_tokens(word, text) %>%
+            count(doc, word, sort = TRUE)
+words_en
+```
+
+
+
+```{r}
+words_tfidf = bind_tf_idf(words_en, word, doc, n)
+words_tfidf
+```
+chequeamos que trgos osnpareicdos al 80...
+
+
+instrucc del 80
+```{r}
+install.packages('widyr')
+
+require(widyr)
+
+similarities = words_tfidf %>% 
+  pairwise_similarity(doc, word, tf_idf, sort = TRUE)
+
+similarities
+
+
+
+```
+
+
+instruc del 80
+
+```{r}
+inst_EN[80]
+
+```
+
+cuales se parecen al 80??
+
+```{r}
+similarities[similarities$item1==80,]
+```
+
+veamos el 11, q es el mas parecido... sus isntru
+
+```{r}
+inst_EN[80]
+
+```
+
+vamos a ahcer el ultimo ejercicio, que es buscar 4 terminos mas frecuentes vs las de mayor indice tf-idf
+
+```{r}
+words_tfidf
+```
+

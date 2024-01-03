@@ -1,0 +1,233 @@
+---
+title: "Modelado pinguinos"
+author: "Mariano Vasulka"
+date: "16/11/2021"
+output: html_document
+---
+pinguinos , vamos a modelar largo del pico en funcion del peso de pinguinos de la especie gentoo
+
+```{r}
+require(dplyr)
+
+df = palmerpenguins::penguins
+
+pinguinos = df %>% filter(species == 'Gentoo' , !is.na(body_mass_g)) %>% select(bill_length_mm , body_mass_g)
+
+sum(is.na(pinguinos$body_mass_g))#como hay dos na
+
+sum(is.na(pinguinos$bill_length_mm))#aparentemente no hay na
+
+```
+
+grafiquemso un scatterplot
+
+```{r}
+require(ggplot2)
+pinguinos %>% ggplot(mapping = aes(x = body_mass_g , y = bill_length_mm)) + geom_point()
+```
+
+del grafico, pareciera haber alguna relacion lineal, aunque bastante dispersa
+
+voy a hacer un modelo lineal con la funcion lm para tenerla a mano
+
+```{r}
+modLineal = lm(data = pinguinos , bill_length_mm~body_mass_g)
+
+modLineal
+```
+
+ahora a escribirlo explicitamente, para ir comparando...
+
+crear func que reciba ordenada, pendiente, y peso, y devuelva como output, el largo del pico
+
+```{r}
+modelo_lineal_a_mano = function(ordenada , pendiente , peso){
+  largo_pico = pendiente*peso + ordenada
+  
+  return(largo_pico)
+}
+#funciona
+```
+
+Luego lo que quiero es generar un vector con predicciones de num de filas = nrow(pinguinos), con una prediccion para cada fila del dataset original
+
+
+
+
+armar la evaluacion...
+
+es decir, medida del ajuste, dado un modelo...
+
+entocnes armamos una funcion que tenga de input la var a explicar(y=largo pico) , y las predicciones del modelo. La vamos a llamar funcion de perdida. su output sera RMSE o raiz cuadrada del error cuadratico medio
+
+```{r}
+
+
+fun_loss = function(largo_pico_observado , prediccion_modelo){
+  
+  #RMSE = Raiz((sum((predicho-observado)**2))/N)
+  
+  observados = largo_pico_observado
+  
+  predichos = prediccion_modelo
+  
+  for (i in length(observados)){
+    
+    diferencias_cuadraticas = ((predichos[[i]]-observados[[i]])**2)
+
+  }
+  error_cuadratico_medio = (sum(diferencias_cuadraticas))/length(diferencias_cuadraticas)
+  
+  RMSE = sqrt(error_cuadratico_medio)
+  
+  return(RMSE)
+}
+#funciona
+```
+
+esto todavia no lo puedo probar, porque es el equeleto de la forma de calcular el RMSE
+
+
+ahora la optimizacion, es decir, encontrar los parametros, que minimicen la funcion de perdida
+
+lo vamos a hacer de manera aleatoria
+
+entocnes haremos una funcion que...
+
+
+definir valores iniciales a,b
+
+evalue el RMSE inicial
+
+genere valores a,b en una region definida y reevalue el RMSE
+
+si el RMSE disminuye tomar los nuevos a,b  caso contrario, disminuir region de busqueda
+
+cuando region de busqueda, suficientemente chica, termina y devuelve a,b
+
+a = ordenada
+
+b = pendiente
+
+deberia pensar mejor que recibe...
+
+```{r}
+modelo_lineal_a_mano(25 , 0.1 , pinguinos$body_mass_g)#me ahorro un loop
+```
+
+
+```{r}
+optimizacion = function(){
+  
+  #genero valores iniciales de a,b arbitrariamente
+  
+  a = 25
+  
+  b = 0.1
+  
+  decrementor = 0.999
+  
+  largo_pico_observado = pinguinos$bill_length_mm
+  
+  #aplicar modelo_lineal_a_mano en un for para obtener un vector de predichos
+  
+  peso = pinguinos$body_mass_g
+  
+  predichos = c()
+  
+  #decrementor = 0.999 #aca lo seteaba internamente, pero porque estaba pensandolo
+  
+  while(decrementor > 0.05){
+  
+    # for (j in nrow(peso)){
+    # 
+    #   prediccion = modelo_lineal_a_mano(a , b , peso[[j]])
+    # 
+    #   predichos = c(predichos , prediccion)
+    # }
+  
+    predichos = modelo_lineal_a_mano(a , b , peso)
+    
+    rmse_inicial = fun_loss(largo_pico_observado , predichos)#hasta aca calculo RMSE inicial dados a,b arbitrarios
+  
+    a_nuevo =
+      
+    b_nuevo =
+  
+    predichos_nuevos = c()
+  
+    # for (j in nrow(peso)){
+    # 
+    #   prediccion_nuevo = modelo_lineal_a_mano(a_nuevo , b_nuevo , peso[[j]])
+    # 
+    #   predichos_nuevos = c(predichos_nuevos , prediccion_nuevo)
+    # }
+    
+    print(predichos_nuevos)
+    
+    predichos_nuevos = modelo_lineal_a_mano(a_nuevo , b_nuevo , peso)    
+    
+    print(predichos_nuevos)
+    print(sum(is.na(predichos_nuevos)))
+    
+    print(sum(is.na(largo_pico_observado)))
+    
+    rmse_nuevo = fun_loss(largo_pico_observado , predichos_nuevos)#hasta aca genere un nuevo modelo, y evaluo cuan bien ajusta
+  
+  #ahora comparo cual ajusta mejor
+  
+  #si RMSE_nuevo < RMSE_inicial piso los valores de a,b
+    print(rmse_inicial)
+    print(rmse_nuevo)
+  
+    if(rmse_nuevo < rmse_inicial){
+    
+      a = a_nuevo
+    
+      b = b_nuevo
+  }#hasta aca tomo la desicion de que si mejoro pise los valores
+  
+    else{
+    
+      a = decrementor*a
+    
+      b = decrementor*b
+    
+      decrementor = decrementor * decrementor
+  
+    }#hasta aca achico el rango de busqueda dentro de a,b tal que encuentre algo que minimice el error
+  }
+  #pienso que todo esto deberia estar metido dentro de un gran for, tal que use un valor de corte con el decrementor, o factor de achique
+  
+  return(a , b)
+}
+
+optimizacion()
+```
+
+
+
+
+##  sigo con la parte del tp de clasificacion
+
+```{r}
+pinguinos_as = df %>% filter(species == 'Gentoo' , !is.na(body_mass_g) , !is.na(sex)) %>% select(bill_length_mm , body_mass_g , sex)
+
+pinguinos_as
+```
+
+ahora hago histograma para ver machos y hemabras sus distrib de peso
+
+```{r}
+pinguinos_as %>% ggplot() + geom_histogram(mapping = aes(x = body_mass_g , color = sex))
+```
+a ojo pareciera que 5200 ser'ia un buen punto de corte en el clasificador macho-hembra
+
+podemos pensar una manera de medir el error de clasificacion como num de cosas mal clasificadas/total
+
+y minimizar eso
+
+```{r}
+
+```
+

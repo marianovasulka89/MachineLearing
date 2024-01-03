@@ -1,0 +1,513 @@
+---
+title: "APIs"
+author: "MV"
+date: "14/9/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+vamos a realizar el ejercicio de apis
+
+```{r}
+install.packages('jsonlite')
+```
+```{r}
+require(jsonlite)
+require(httr)
+require(rvest)
+```
+
+```{r}
+res_museos = GET("https://www.cultura.gob.ar/api/v2.0/museos/")
+rawToChar(res_museos$content[1:2000])
+```
+
+```{r}
+museos = fromJSON("https://www.cultura.gob.ar/api/v2.0/museos/") # Llamamos al endpoint ahora ya "parseando" el JSON
+summary(museos)
+```
+
+```{r}
+museos$results
+
+```
+tragos por ingrediente
+```{r}
+tragos_gin = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/filter.php?i=Gin")
+tragos_gin
+```
+
+```{r}
+tragos$drinks
+```
+tragos por ingrediente
+```{r}
+tragos_naranja = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/filter.php?i=Orange")
+tragos
+```
+que ingredientes hay disponibles
+```{r}
+ingredientes = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/list.php?i=list")
+ingredientes
+```
+
+buscar un trago al azar, y sacar el promedio de ingredientes por trago
+
+```{r}
+num_ingredientes = c()
+for (i in 1:10){
+  al_azar = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/random.php")
+  al_azar = data.frame(al_azar)#podria no haberlo forzado a ser un df, ya que al ser lista, accedo[[]] al elemento que si era un df
+  al_azar = al_azar[1 , 18:32]
+  n_ingredientes = sum(!is.na(al_azar))
+  num_ingredientes = c(num_ingredientes , n_ingredientes)
+}
+
+promedio_ingredientes_tragos = sum(num_ingredientes)/length(num_ingredientes)#podria haber usado mean()
+```
+
+elijo un ingrediente, y busco todos los tragos con dicho ingrediente, y los cuento.
+
+```{r}
+tragos_Strawberry_Schnapps = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/filter.php?i=Strawberry schnapps")
+```
+
+```{r}
+tragos_Strawberry_Schnapps
+```
+hay tres tragos con strawberry schnaps
+
+distribucion tipo de vaso en tragos con Gin?
+
+veamos nuevamente el df
+
+```{r}
+tragos_gin
+```
+
+aca no hay vasos, veamos en la api
+
+voy a usar el de detalles del trago por id
+
+```{r}
+detalles_trago = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/lookup.php?i=11007")
+detalles_trago
+```
+aca tenemos strGlass, como columna que contiene el tipo de vaso...
+
+```{r}
+vasos = c()
+for (t in tragos_gin[[1]]$idDrink){
+  
+  id_trago = t
+  
+  pagina_sin_id = "http://www.thecocktaildb.com/api/json/v1/1/lookup.php?i="
+  
+  consulta_completa = paste0(pagina_sin_id , id_trago)
+  
+  caracteristicas = fromJSON(consulta_completa)
+  
+  tipo_vaso = caracteristicas[[1]]$strGlass
+  
+  vasos = c(vasos , tipo_vaso)
+  
+}
+```
+
+ahora, como ya tengo todos lso vasos... puedo hacer una tabla, para luego haceru n barplot
+
+```{r}
+tabla_de_vasos = table(vasos)
+
+barplot(tabla_de_vasos , las = 2)
+```
+
+puedo ordenar los datos de manera creciente....
+
+```{r}
+tabla_de_vasos_ordenada = sort(table(vasos), decreasing = TRUE)
+
+barplot(tabla_de_vasos_ordenada  , las = 2)
+```
+
+```{r}
+tragos_champagne = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/filter.php?i=Champagne")
+tragos_champagne
+```
+ahora voy a la parte del champagne...
+los vasos??
+```{r}
+vasos_c = c()
+for (t in tragos_champagne[[1]]$idDrink){
+  
+  id_trago = t
+  
+  pagina_sin_id = "http://www.thecocktaildb.com/api/json/v1/1/lookup.php?i="
+  
+  consulta_completa = paste0(pagina_sin_id , id_trago)
+  
+  caracteristicas = fromJSON(consulta_completa)
+  
+  tipo_vaso_c = caracteristicas[[1]]$strGlass
+  
+  vasos_c = c(vasos_c , tipo_vaso)
+}
+```
+
+el barplot a partir de la tabla
+
+```{r}
+sort(table(vasos_c) , decreasing = T)
+barplot(sort(table(vasos_c) , decreasing = T))
+```
+
+solo se usa ese tipo de vaso
+
+ahora agarro al azar 10 tragos, y veo sus instrucciones, para evaluar lo de los idiomas
+
+
+```{r}
+azaroso = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/random.php")
+```
+
+```{r}
+azaroso
+```
+
+
+
+```{r}
+vector_ingles = c()
+
+vector_aleman = c()
+
+vector_italiano = c()
+
+for (t in 1:10){
+  
+  azaroso = fromJSON("http://www.thecocktaildb.com/api/json/v1/1/random.php")
+  
+  ingles = azaroso[[1]]$strInstructions
+  
+  aleman = as.character(azaroso[[1]]$strInstructionsDE)
+  
+  italiano = azaroso[[1]]$strInstructionsIT
+  
+  vector_ingles = c(vector_ingles , strsplit(ingles , ''))
+  
+  vector_aleman = c(vector_aleman  , strsplit(aleman , ''))
+  
+  vector_italiano = c(vector_italiano  , strsplit(italiano , ''))
+}
+```
+
+ahora que tengo los tres vectores para cada idioma, veo que letras tienen, estan en formato lista
+
+primero genero los superString para cada idioma
+```{r}
+
+superStringIngles = tolower(unlist(vector_ingles))
+
+superStringAleman = tolower(unlist(vector_aleman))
+
+superStringItaliano = tolower(unlist(vector_italiano))
+```
+
+
+ahora elimino los string no en comun entre idiomas
+
+quiero reemplazar por nada, todo l oque no sea una letra
+
+voy a usar gsub('[^a-z,]','', string)
+
+```{r}
+superStringInglesArreglado = gsub('[^a-z,]','', superStringIngles)
+
+superStringAlemanArreglado = gsub('[^a-z,]','', superStringAleman)
+
+superStringItalianoArreglado = gsub('[^a-z,]','', superStringItaliano)
+
+```
+
+
+aca hago las tablas
+```{r}
+tabla_ingles = sort(table(superStringInglesArreglado))
+
+tabla_aleman = sort(table(superStringAlemanArreglado))
+
+tabla_italiano = sort(table(superStringItalianoArreglado))
+```
+
+ahora grafico...
+
+```{r}
+barplot(tabla_ingles, cex.names = 0.6)
+
+barplot(tabla_aleman , cex.names = 0.6)
+
+barplot(tabla_italiano , cex.names = 0.6)
+```
+
+API banco mundidal
+
+continuara...
+
+la seguimos...
+
+```{r}
+require(jsonlite)
+require(httr)
+require(rvest)
+```
+
+
+copiando de la notebook original....
+
+```{r}
+data = fromJSON("https://api.worldbank.org/v2/es/country/all/indicator/NY.GDP.PCAP.PP.CD?format=json")
+data
+```
+
+ahora pedimos que vengan todos los datos juntos ne una sola pagina...
+
+```{r}
+data = fromJSON("https://api.worldbank.org/v2/es/country/all/indicator/NY.GDP.PCAP.PP.CD?format=json&per_page=20000")
+pbi = data[[2]]
+```
+
+```{r}
+pbi
+```
+
+
+como sol oquiero ver pbi de arg y brasil, puedo seleccionar del df directo... o puedo hacer el pedido por la api seleccionando arg y bra solamente....
+
+```{r}
+valor_ar = pbi[pbi$countryiso3code == 'ARG', 'value']
+anio_ar = pbi[pbi$countryiso3code == 'ARG', 'date']
+plot(anio_ar, valor_ar, type='l', col='red', xlab = 'Año', ylab='PBI Per. Cap. PPP')
+
+valor_br = pbi[pbi$countryiso3code == 'BRA', 'value']
+anio_br = pbi[pbi$countryiso3code == 'BRA', 'date']
+lines(anio_br, valor_br, col='blue')
+legend(1960, 15000, legend=c("Argentina", "Brasil"),
+       col=c("red", "blue"), lty=c(1, 1), cex=0.8)
+```
+
+
+ahora ya vienen los ejercicios quen so dejaron...
+
+
+codigo que voy a usar para el indicador de kg de fetilizante/tierras cultivables: AG.CON.FERT.ZS
+
+```{r}
+fertilizantes_ARG_BRA = fromJSON("http://api.worldbank.org/v2/country/ARG;BRA/indicator/AG.CON.FERT.ZS?format=json")
+```
+
+
+```{r}
+fertilizantes_ARG_BRA
+```
+
+como en total tiene 122 elementos, voy a pedir que por pagina tenga 200, asi trae todos de una sola vez
+
+```{r}
+fertilizantes_ARG_BRA = fromJSON("http://api.worldbank.org/v2/country/ARG;BRA/indicator/AG.CON.FERT.ZS?format=json&per_page=200")
+```
+
+chequeo que haya funcionado
+
+```{r}
+fertilizantes_ARG_BRA
+```
+
+aca se observa que oslo hay datos hasta el 2018, asi que graficaremos solo hasta el 2018
+
+vamos a pediir los datos para poder graficar
+
+```{r}
+df = fertilizantes_ARG_BRA[[2]]#queda comentada porque ya la habia corrido
+df$date = as.numeric(df$date)#queda comentada porque ya la habia corrido
+df$value = as.numeric(df$value)#queda comentada porque ya la habia corrido
+
+```
+
+dado que el df quedo raro, voy a probar de armar uno nuevo, solo ocn la informacion que am i me interesa
+
+```{r}
+ddff = data.frame(df[[3]] , df[[4]] , df[[5]])
+```
+
+
+```{r}
+ddff
+```
+
+```{r}
+colnames(ddff) = c('pais' , 'fecha' , 'valor')
+```
+
+
+```{r}
+ddff
+```
+
+ahora que efectivamente tenfo un ddff como queiro, puedo trabaajr
+veo que en 1960 argentina tampoco tiene datos
+
+ddff[ddff['pais'] == 'ARG' & ddff['fecha'] <= 2018 & ddff['fecha'] != 1960]
+esta linea devuelve un string, que no me gusta nada
+
+para depsues
+
+```{r}
+fert_arg = subset(ddff , pais == 'ARG')
+
+fert_bra = subset(ddff , pais == 'BRA')
+
+sub_arg_fechas = subset(fert_arg , fecha != c(2020 , 2019))
+
+fecha_fert_arg = subset(sub_arg_fechas , fecha != 1960)$fecha
+
+sub_bra_fechas = subset(fert_bra , fecha != c(2020 , 2019))
+
+fecha_fert_bra = subset(sub_bra_fechas , fecha != 1960)$fecha
+  
+valor_fert_arg = subset(sub_arg_fechas , fecha != 1960)$valor
+
+valor_fert_bra = subset(sub_bra_fechas , fecha != 1960)$valor
+```
+
+ahora quedagraficar arg vs brasil en cantidad de fertilizantes/sup fertil
+
+```{r}
+plot(fecha_fert_arg , valor_fert_arg , type = 'l' , col = 'red' , xlab = 'anio' , ylab = 'fertilizante/sup fertil' , ylim = range(0 , 310))
+lines(fecha_fert_bra , valor_fert_bra , col = 'blue')
+```
+
+a seguir ocn l oqeue pide la guia.. ajaja
+
+bajar algo por anio
+
+```{r}
+fertilizantes_ARG_BRA_2000_2002 = fromJSON("http://api.worldbank.org/v2/country/ARG;BRA/indicator/AG.CON.FERT.ZS/?date=2000:2002&format=json&per_page=200")
+
+```
+
+quiero verlo, si hizo l oque quiero
+
+```{r}
+fertilizantes_ARG_BRA_2000_2002
+```
+
+buneo, logrado, seguimos!!
+
+
+ahora sale la esperanza de vida de paises con al menos 10 millones de habitantes entre 1980-hoy
+como criterio voy a utilizar que los 10M sean en 1980, y bajo dos df, uno por 1980 otro por 2021
+
+id de poblacion total: SP.POP.TOTL
+
+id de esperanza de vida al nacer: SP.DYN.LE00.IN
+
+en mabos hay datos hasta 2019, por l ocual la busqueda sera de 1980 vs 2019
+```{r}
+data_80 = fromJSON("https://api.worldbank.org/v2/country/all/indicator/SP.DYN.LE00.MA.IN?date=1980&format=json&SP.POP.TOTL>10000000&per_page=300")
+
+data_2019 = fromJSON("https://api.worldbank.org/v2/country/all/indicator/SP.DYN.LE00.MA.IN?date=2019&format=json&SP.POP.TOTL>10000000&per_page=300")
+```
+
+lo organizo en  df, para q sea mas facil de escribir
+
+```{r}
+df_80 = data_80[[2]]
+
+df_19 = data_2019[[2]]
+
+df_80
+
+df_19
+```
+
+ahora que ya tengo ambos df
+
+sale ese grafico de barras de los 10 con mas esp de vida en 1980 y 2019
+
+para ordenar decrecientemente, obteniendo los indices de las filas de mayor esp de vida en cada anio
+realizo order(df_80$value , decreasing = T) y luego aplico df_80[filan:filan++ , ] para obtener los val max
+con esta estructura llego a pais: df_80$country[fila,'value']
+
+```{r}
+ochentas_ordenados_indices = order(df_80$value , decreasing = T)
+
+hoy_ordenados_indices = order(df_19$value , decreasing = T)
+
+esperanzas_80 = df_80[ochentas_ordenados_indices[1:10],'value']
+
+esperanzas_hoy = df_19[hoy_ordenados_indices[1:10],'value']
+
+paises_80 = df_80$country[ochentas_ordenados_indices[1:10],'value']
+
+paises_hoy = df_19$country[hoy_ordenados_indices[1:10],'value']
+```
+
+ahora ya puedo hacer los barplot
+
+```{r}
+barplot(esperanzas_80~paises_80 , las = 2 , cex.names = 0.6)
+
+barplot(esperanzas_hoy~paises_hoy , las = 2 , cex.names = 0.6)
+```
+
+paises que m'as aumentaron su esperanza de vida desde 80 hasta hoy...
+
+```{r}
+diferencia_esperanza = data.frame(df_80$country$value , df_19$value-df_80$value)
+colnames(diferencia_esperanza) = c('pais','diferencia_esp_vida')
+View(diferencia_esperanza)
+```
+
+entonces ahora ordeno con order para tener los indices, y poder graficar
+
+```{r}
+diff_esp_vida_ordenadas = order(diferencia_esperanza$diferencia_esp_vida , decreasing = T)
+
+paises_diff = diferencia_esperanza[diff_esp_vida_ordenadas[1:10],'pais']
+
+esp_vida_diff = diferencia_esperanza[diff_esp_vida_ordenadas[1:10],'diferencia_esp_vida']
+```
+
+ahora grafico
+
+```{r}
+
+barplot(esp_vida_diff~paises_diff , las = 2 , cex.names = 0.6)
+```
+
+me falto el ultimo ejercicio

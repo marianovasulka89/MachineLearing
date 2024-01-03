@@ -1,0 +1,604 @@
+---
+title: "TPLaboDatosMergeado"
+author: "Julian Figueroa , Juan Manuel Prieto , Mariano Vasulka"
+date: "31/10/2021"
+output: html_document
+---
+
+```{r}
+library("dplyr")
+library("tidyverse")
+require('geosphere')
+library("ggplot2")
+```
+
+Cargamos los dataframes
+```{r}
+aeropuertos_dataframe = read.csv2('sna_abril_2021.csv' , sep = ',' , encoding = "UTF-8")
+
+vuelos_dataframe = read.csv2('202109-informe-ministerio.csv' , sep = ';' )
+```
+
+Funcion para calcular las distancias:
+
+```{r}
+Calculo_Distancias <- function(Partida , Llegada ,Coordenadas ) {
+  Aero_1 = which(Coordenadas$ana == Partida)
+  Aero_2 = which(Coordenadas$ana == Llegada)
+  distancia <- distHaversine(c(Coordenadas[Aero_1,2] , Coordenadas[Aero_1,3]) ,c(Coordenadas[Aero_2,2], Coordenadas[Aero_2,3])) / 1000# Para pasar a km  
+  distancia <- as.numeric(round(distancia, 2))
+  return(distancia)
+}
+```
+
+Se arreglan los caracteres:
+
+```{r}
+columnas_correcion <- c("cpr","fna", "nam", "nom_ciudad") 
+aeropuertos_dataframe[columnas_correcion] <- lapply(aeropuertos_dataframe[columnas_correcion], gsub, pattern ="Ã­", replacement = "í")
+aeropuertos_dataframe[columnas_correcion] <- lapply(aeropuertos_dataframe[columnas_correcion], gsub, pattern ="Ã©", replacement = "é")
+aeropuertos_dataframe[columnas_correcion] <- lapply(aeropuertos_dataframe[columnas_correcion], gsub, pattern ="Ãġ", replacement = "ó")
+aeropuertos_dataframe[columnas_correcion] <- lapply(aeropuertos_dataframe[columnas_correcion], gsub, pattern ="Ãẃ", replacement = "ú")
+aeropuertos_dataframe[columnas_correcion] <- lapply(aeropuertos_dataframe[columnas_correcion], gsub, pattern ="ÃḂ", replacement = "á")
+```
+
+Hacemos un dataframe solo de coordenadas:
+
+```{r}
+Coordenadas = aeropuertos_dataframe %>%
+  select(ana, x, y)
+Coordenadas$x <- as.numeric(as.character(Coordenadas$x))
+Coordenadas$y <- as.numeric(as.character(Coordenadas$y))
+head(Coordenadas)
+```
+
+Se renombran las columnas, y eliminamos datos no informativos, como aeronave 0 pasajeros 0 y areopuerto 0..
+
+```{r}
+colnames(vuelos_dataframe) = c('Fecha' , 'Hora' , 'ClaseVuelo' , 'ClasificacionVuelo' , 'Tipomovimiento' , 
+'Aeropuerto' , 'Origen_Destino' , 'Aerolinea' , 'Aeronave' , 'Pasajeros' , 'CalidadDato')
+
+vuelos_dataframe = vuelos_dataframe[vuelos_dataframe$Aerolinea != 0,]
+vuelos_dataframe = vuelos_dataframe[vuelos_dataframe$Aeronave != 0,]
+vuelos_dataframe = vuelos_dataframe[vuelos_dataframe$Pasajeros != 0,]
+```
+
+Seleccionamos Aterrizajes y Despegues, vuelos regulares y de cabotaje, y se eliminan columnas no informativas
+
+```{r}
+cabotaje_aterrizaje <- subset(vuelos_dataframe , vuelos_dataframe$Tipomovimiento == 'Aterrizaje' & vuelos_dataframe$ClasificacionVuelo == 'Dom' & vuelos_dataframe$ClaseVuelo == 'Regular') 
+cabotaje_despegue <- subset(vuelos_dataframe , vuelos_dataframe$Tipomovimiento == 'Despegue' & vuelos_dataframe$ClasificacionVuelo == 'Dom' & vuelos_dataframe$ClaseVuelo == 'Regular') 
+cabotaje_aterrizaje = select(cabotaje_aterrizaje, -c('ClaseVuelo','ClasificacionVuelo','CalidadDato'))
+cabotaje_despegue = select(cabotaje_despegue, -c('ClaseVuelo','ClasificacionVuelo','CalidadDato'))
+```
+
+Chequeamos dimensiones
+
+```{r}
+print(paste('Dimension de aterrizajes: ' , dim(cabotaje_aterrizaje)  , 'Dimension despegues: ' , dim(cabotaje_despegue)))
+```
+Se unen las filas en base al Aeropuerto y el aterrizaje, ademas se crea la fecha de desepegue y salida a partir de las mismas
+
+```{r}
+Merge_Despegue_Aterrizaje = inner_join(cabotaje_despegue,cabotaje_aterrizaje, by=c("Aeropuerto" = "Origen_Destino", "Origen_Destino" = "Aeropuerto" ,"Aerolinea" = "Aerolinea","Aeronave" = "Aeronave" , "Pasajeros" = "Pasajeros" ))
+
+Merge_Despegue_Aterrizaje$Fecha_Hora_X = paste(as.Date(Merge_Despegue_Aterrizaje$Fecha.x, "%Y/%m/%d") ,Merge_Despegue_Aterrizaje$Hora.x , sep=" ")
+Merge_Despegue_Aterrizaje$Fecha_Hora_Y = paste(as.Date(Merge_Despegue_Aterrizaje$Fecha.y, "%Y/%m/%d") ,Merge_Despegue_Aterrizaje$Hora.y , sep=" ")
+
+Merge_Despegue_Aterrizaje$Tiempo_Vuelo = difftime(Merge_Despegue_Aterrizaje$Fecha_Hora_Y , Merge_Despegue_Aterrizaje$Fecha_Hora_X , unit = "hours")
+
+Despegue_Aterrizaje = filter(Merge_Despegue_Aterrizaje, Tiempo_Vuelo > 0.5 & Tiempo_Vuelo < 5) #Valores minimos y maximo de tiempo de vuelo
+```
+
+Seleccionamos 
+```{r}
+Despegue_Aterrizaje = select(Despegue_Aterrizaje, -c('Fecha.x','Hora.x','Tipomovimiento.x','Fecha.y','Hora.y','Tipomovimiento.y'))
+```
+
+Utilizamos la funcion del calculo de las distancias y analizamos los vuelos mensuales
+```{r}
+
+Despegue_Aterrizaje$Distancia=0
+
+for (j in 1:nrow(Despegue_Aterrizaje)){
+    Despegue_Aterrizaje[j,9] = Calculo_Distancias(Despegue_Aterrizaje[j,1],Despegue_Aterrizaje[j,2],Coordenadas)
+    }
+
+
+#colnames(Despegue_Aterrizaje) = c('Despegue' , 'Aterrizaje' , 'Aerolinea' , 'Aeronave' , 'Pasajeros' , 'Fecha Desp' ,
+#'Fecha Ater' , 'Tiempo Vuelo' , 'Distancia')
+
+###Arreglar
+colnames(Despegue_Aterrizaje) = c('Despegue' , 'Aterrizaje' , 'Aerolinea' , 'Aeronave' , 'Pasajeros' , 'FechaDesp' ,
+'FechaAter' , 'TiempoVuelo' , 'Distancia')
+
+#Distribucion mensual de vuelos:Despegue y Aterrizaje:La reduccion del mes Junio se debe a la cuarentena de 15 dias.
+
+Despegue_Aterrizaje$MesDes <- format(as.Date(Despegue_Aterrizaje$FechaDesp),"%b") 
+Vuelos_Mensuales1 <- table(Despegue_Aterrizaje$MesDes) #cambie mes a MesDes
+
+
+Despegue_Aterrizaje$MesAte <- format(as.Date(Despegue_Aterrizaje$FechaAter),"%b") 
+Vuelos_Mensuales2 <- table(Despegue_Aterrizaje$MesAte) #cambie mes a MesAte
+
+bar1y2<-c(NULL)
+bar1y2<-cbind(as.matrix(Vuelos_Mensuales1), 
+             as.matrix(Vuelos_Mensuales2))
+
+colnames(bar1y2) <- c("Despegue", "Aterrizaje")
+barplot( bar1y2, 
+         beside=TRUE, 
+         ylab="Cantidad", 
+         main="Cantidad de despegues y aterrizajes",
+         legend.text = rownames(bar1y2),
+         args.legend= list(x = "bottomright",inset = c(- 0.04, -0.1))
+         )
+
+
+
+#Aeronaves mas usadas (Filtrando por la mediana). -> mas usada EMB-ERJ190100IGW 
+Tipo_Aeronaves<- (table(Despegue_Aterrizaje$Aeronave)/nrow(Despegue_Aterrizaje))*100
+print('NÂ°Aeronaves')
+nrow(Tipo_Aeronaves)
+pie(Tipo_Aeronaves[Tipo_Aeronaves>median(Tipo_Aeronaves)], main="Tipo de Aviones",cex=0.55,col = topo.colors(12))#Filtramos por la mediana
+
+#Aerolineas y sus porcentajes en cuanto al uso.-> Aerolineas argentinas se diferencia notablemente
+Aerolineas<- (table(Despegue_Aterrizaje$Aerolinea)/nrow(Despegue_Aterrizaje))*100
+print('Aerolineas')
+Aerolineas=data.frame(Aerolineas,stringsAsFactors = FALSE)
+Aerolineas[1] <- lapply(Aerolineas[1], gsub, pattern ="FB LÃ\215NEAS AÃ‰REAS - FLYBONDI", replacement = "AEROLINEAS FLYBONDI")
+pie(Aerolineas[[2]],Aerolineas[[1]],main="Aerolineas",col = topo.colors(3),cex=0.6)
+###
+
+
+#Guardamos nuestra primer version de los vuelos.
+write.csv(Despegue_Aterrizaje,'Vuelos.csv', row.names = FALSE)
+Despegue_Aterrizaje
+```
+#Se nota que perdimos aproximadamente el 50% de los vuelos luego de sacar valores erroneos, vacios.. etc
+
+
+Cargamos nuevamente el archivo vuelos.csv y seguimos trabajandolo
+```{r}
+## Cargamos el dataframe ya analizado/procesado para seguir haciendo columnas con otros calculos
+vuelos<-c(NULL)
+vuelos=read.csv('Vuelos.csv') #Abro el de antes
+
+tiempoMedia<-c(NULL)
+distanciaMedia<-c(NULL)
+velocidadMedia<-c(NULL)
+
+AeropuertosDespegue=unique(vuelos$Despegue)
+
+#Algunas caracteristicas fisicas de los despegues
+for(i in 1:length(AeropuertosDespegue)){
+  tiempoMedia<-cbind(tiempoMedia,mean((vuelos %>% filter(Despegue==AeropuertosDespegue[i]))$TiempoVuelo))
+  distanciaMedia<-cbind(distanciaMedia,mean((vuelos %>% filter(Despegue==AeropuertosDespegue[i]))$Distancia))
+  velocidadMedia<-cbind(velocidadMedia,distanciaMedia[i]/tiempoMedio[i])
+  
+}
+tiempoMedia=tiempoMedia[1,]
+distanciaMedia=distanciaMedia[1,]
+velocidadMedia=velocidadMedia[1,]
+
+#Creamos un dataframe aparte, que luego lo pegaremos en el dataframe "vuelos".añadimos lo anterior y creamos mas columnas.
+UnirAvuelos=data.frame(AeropuertosDespegue,tiempoMedio,distanciaMedia,velocidadMedia)
+UnirAvuelos=UnirAvuelos %>% mutate(Provincia=0,Latitud=0,Longitud=0,Ciudad=0)
+
+
+```
+
+
+
+Por conveniencia y facilidad se cargan los archivos nuevamente porque en los codigos de cada uno habia bastantes diferencias
+Este bloque es un poco repetitivo, se puede saltar hasta la mitad
+```{r}
+
+# Se carga nuevamente los archivos, aunque anterior mente se habia cargado el sna_abril_2021 en vez del fixed encoding.
+InformeMinisterio = read.csv('202109-informe-ministerio.csv' , sep = ';') 
+aeropuertos = read.csv('sna_abril_2021_fixed_encoding.csv')
+
+colnames(InformeMinisterio) = c('Fecha' , 'Hora' , 'ClaseVuelo' , 'ClasificacionVuelo' , 'Tipomovimiento' , 
+'Aeropuerto' , 'Origen_Destino' , 'Aerolinea' , 'Aeronave' , 'Pasajeros' , 'CalidadDato')
+
+aeropuertos = aeropuertos %>% select(cpr , nam , fna , fuc , ose , iko , ita ,  ana , thr , nom_ciudad , x , y)
+colnames(aeropuertos) = c('Provincia' , 'Localidad' , 'Aeropuerto' , 'Funcionamiento' , 'EmpresaOperadora' , 'iko' , 'ita' , 'ana' , 'TipoDeVuelo' , 'Ciudad' , 'Latitud' , 'Longitud')
+
+columnas_correcion <- c("Provincia","Localidad", "Aeropuerto", "Ciudad") 
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="Ã­", replacement = "í")
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="Ã©", replacement = "é")
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="Ãġ", replacement = "ó")
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="Ã³", replacement = "ó")
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="Ãẃ", replacement = "ú")
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="Ãº", replacement = "ú")
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="ÃḂ", replacement = "á")
+aeropuertos[columnas_correcion] <- lapply(aeropuertos[columnas_correcion], gsub, pattern ="Ã¡", replacement = "á")
+
+cabotaje = InformeMinisterio %>% filter(ClasificacionVuelo == 'Dom' , ClaseVuelo == 'Regular')
+
+#De aca vamos trasnformando el UnirAvuelos
+Nombres<-c(NULL)
+for(i in 1:length(unique(cabotaje$Aeropuerto))){
+  Nombres<-cbind(Nombres,(aeropuertos %>% filter(iko==unique(cabotaje$Aeropuerto)[i]|ita==unique(cabotaje$Aeropuerto)[i]|ana==unique(cabotaje$Aeropuerto)[i]))$Ciudad)
+}
+Nombres=Nombres[1,]
+#
+for(i in 1:length(AeropuertosDespegue)){
+  for(j in 1:length(Nombres)){
+    if(UnirAvuelos$AeropuertosDespegue[i]==AeropuertosNombres[j]){
+      UnirAvuelos$Localidad[i]=Nombres[j]
+      UnirAvuelos$Latitud[i]=latitud_[j]
+      UnirAvuelos$Longitud[i]=longitud_[j]
+    }
+  }
+}
+for(i in 1:length(AeropuertosDespegue)){
+  for(j in 1:length(aeropuertos$iko)){
+    if(UnirAvuelos$AeropuertosDespegue[i]==aeropuertos$iko[j]
+       ||UnirAvuelos$AeropuertosDespegue[i]==aeropuertos$ita[j]
+       ||UnirAvuelos$AeropuertosDespegue[i]==aeropuertos$ana[j]){
+      UnirAvuelos$Provincia[i]=aeropuertos$Provincia[j]
+      UnirAvuelos$Ciudad[i]=aeropuertos$Ciudad[j]
+      #OtroDataframe$Localidad[i]=aeropuertos$Localidad[j]
+    }
+  }
+}
+#Arreglados a mano
+UnirAvuelos$Provincia[2]="Rio Negro"
+UnirAvuelos$Provincia[4]="Tucuman"
+UnirAvuelos$Provincia[12]="Santa Cruz"
+UnirAvuelos$Provincia[17]="Jujuy"
+UnirAvuelos$Provincia[29]="Neuquén"
+UnirAvuelos$Provincia[34]="Buenos Aires"
+
+```
+
+
+Ahora si tomando el dataframe vuelos, vamos creando las columnas restantes con el dataframe "unirAvuelos"
+```{r}
+library(dplyr)
+colnames(vuelos)<-c("Aeropuerto.Despegue","Aterrizaje","Aerolinea","Aeronave","Pasajeros","Fecha.Desp","Fecha.Ater","Tiempo.Vuelo","Distancia","MesDes","MesAte")
+
+vuelos %>% mutate(Velocidad=0,TiempoMedia=0,DistanciaMedia=0,VelocidadMedia=0,Provincia=0,Latitud=0,Longitud=0,Ciudad=0)
+
+for(i in 1:length(vuelos$Aeropuerto.Despegue)){
+  for(j in 1:length(UnirAvuelos$AeropuertosDespegue)){
+    if(vuelos$Aeropuerto.Despegue[i]==UnirAvuelos$AeropuertosDespegue[j]){
+      vuelos$Velocidad[i]=vuelos$Distancia[i]/vuelos$Tiempo.Vuelo[i]
+      vuelos$TiempoMedia[i]=UnirAvuelos$tiempoMedio[j]
+      vuelos$DistanciaMedia[i]=UnirAvuelos$distanciaMedia[j]
+      vuelos$VelocidadMedia[i]=UnirAvuelos$velocidadMedia[j]
+      vuelos$Provincia[i]=UnirAvuelos$Provincia[j]
+      vuelos$Latitud[i]=UnirAvuelos$Latitud[j]
+      vuelos$Longitud[i]=UnirAvuelos$Longitud[j]
+      vuelos$Ciudad[i]=UnirAvuelos$Ciudad[j]
+    }
+  }
+}
+
+#Ordenamos el dataframe(No dejamos MesDes y MesAte, es redundante ya teniendo las fechas)
+vuelos=vuelos %>% select(Aerolinea,Aeronave,Fecha.Desp,Fecha.Ater,Aeropuerto.Despegue,Latitud,Longitud,Provincia,Ciudad,Aterrizaje,Pasajeros,Tiempo.Vuelo,Distancia,Velocidad,TiempoMedia,DistanciaMedia,VelocidadMedia) 
+
+write.csv(vuelos,"Vuelos_Actualizado2.csv",row.names = F)
+
+#PARTE 1
+#Aca esta el dataframe final con lo pedido, y algunas columnas mas(Ejemplo: velocidadMedia que es para cada Aeropuerto de despegue)#
+DataframeTPParte1=read.csv("Vuelos_Actualizado2.csv")
+DataframeTPParte1
+```
+
+
+```{r}
+#PARTE 2
+p=function(x){
+  print(x)
+}
+#Preguntas directas:
+
+#VELOCIDAD
+p("--¿Velocidad media del total?: 685 km/h")  
+p(sum(DataframeTPParte1$VelocidadMedia)/length(DataframeTPParte1$VelocidadMedia))
+velMediaTot=sum(DataframeTPParte1$VelocidadMedia)/length(DataframeTPParte1$VelocidadMedia)#Se usara para vel.minima(1)
+  
+p("--¿Velocidad maxima y su Aeropuerto? 3818 km/h, Aeropuerto:EZE")
+p(DataframeTPParte1$Velocidad[which.max(DataframeTPParte1$Velocidad)])
+p(DataframeTPParte1$Aeropuerto.Despegue[which.max(DataframeTPParte1$Velocidad)])
+
+p("--¿Desvio estandar de la velocidad?: 108 km/h")
+p(sd(DataframeTPParte1$Velocidad))
+VelSd=sd(DataframeTPParte1$Velocidad)#Se usara para vel.minima(2)
+
+#Como la velocidad minima da cero y claramente es erroneo, se utilizara el promedio(1) y tres desvio estandar(2) como limite inferior para     buscar una velocidad mas realista
+limiteInferior=velMediaTot-3*VelSd
+p("--¿Velocidad minima?¿Cual es su Aeropuerto?: 362 km/h ,Aeropuerto:EZE")
+p((DataframeTPParte1$Velocidad[DataframeTPParte1$Velocidad>limiteInferior])[which.min(DataframeTPParte1$Velocidad[DataframeTPParte1$Velocidad>limiteInferior])])
+p((DataframeTPParte1$Aeropuerto.Despegue[DataframeTPParte1$Velocidad>limiteInferior])[which.min(DataframeTPParte1$Velocidad[DataframeTPParte1$Velocidad>limiteInferior])])
+
+#DISTANCIA
+p("--¿Vuelo con mayor distancia?¿Cual es su Aeropuerto?: 2391 km, Aeropuerto:CRV")
+p((DataframeTPParte1$Distancia[which.max(DataframeTPParte1$Distancia)]))
+p(DataframeTPParte1$Aeropuerto.Despegue[which.max(DataframeTPParte1$Distancia)])
+
+p("--¿distancia media del total?: 1169 km/h")  
+p(sum(DataframeTPParte1$Distancia)/length(DataframeTPParte1$Distancia))
+
+p("--¿Desvio estandar de la distancia?: 500 km")
+p(sd(DataframeTPParte1$Distancia))
+
+p("--Mostramos la fila del dataframe del Vuelo con mayor distancia->(ir a la segunda pestana)")
+p(DataframeTPParte1[which.max(DataframeTPParte1$Distancia),]) #<-toda la fila
+
+#TIEMPO
+p("--¿Tiempo medio del total?: 1.7 horas es decir, 1 hora y 42 minutos")  
+p(sum(DataframeTPParte1$Tiempo.Vuelo)/length(DataframeTPParte1$Distancia))
+
+p("--¿Desvio estandar del Tiempo?: 0.65 horas es decir, 39 minutos")
+p(sd(DataframeTPParte1$Tiempo.Vuelo))
+
+
+#PASAJEROS
+p("--¿Cual es la maxima cantidad de pasajeros?¿Y de que Aeropuerto?: 139 pasajeros, Aeropuerto:USU")
+p((DataframeTPParte1$Pasajeros[which.max(DataframeTPParte1$Pasajeros)]))
+p(DataframeTPParte1$Aeropuerto.Despegue[which.max(DataframeTPParte1$Pasajeros)])
+
+p("--¿pasajeros promedio del total?: 57 pasajeros en promedio ")  
+p(sum(DataframeTPParte1$Pasajeros)/length(DataframeTPParte1$Pasajeros))
+
+p("--¿Desvio estandar de la cantidad de pasajeros: 21 pasajeros")
+p(sd(DataframeTPParte1$Pasajeros))
+
+#Como seria un vuelo normal luego de este analisis?
+p("Como seria un vuelo normal luego de este analisis?")
+p("Seria un vuelvo que despegue desde el Palomar de 57 pasajeros, que viaje a unos 685 km/h. Ademas con un tiempo de vuelo de 1 hora 42 minutos a una distancia de xxx")
+```
+
+
+```{r}
+#   Velocidad para cada tipo de aeronave
+
+#Filtro velocidad a partir de la media y dos desvios estandar para no tener outliers.
+DataframeTPParte1 %>% filter(Velocidad>684.9-2*107.8,Velocidad<684.9+2*107.8)  %>% mutate(Velocidad_Vuelo = (Distancia/Tiempo.Vuelo)) %>% group_by(Aeronave) %>% ggplot(mapping = aes(y = Velocidad_Vuelo , x = Aeronave,fill=Aeronave)) + geom_boxplot() + geom_violin(alpha = 0.5) + theme(axis.text.x = element_text(angle = 45, hjust = 1,size=10),plot.background = element_rect(fill = rgb(70/255,175/255,255/255,1)),legend.key.size = unit(0.2, "cm"))+ labs(y="Velocidad")
+
+
+#   Distancias para cada tipo de aeronave
+DataframeTPParte1 %>% filter(Distancia>0) %>% ggplot(mapping = aes(x = Aeronave , y = Distancia,fill=Aeronave)) + geom_point() + geom_boxplot(alpha = 0.2) + geom_violin(alpha =0.5) + theme(axis.text.x = element_text(angle = 45, hjust = 1),plot.background = element_rect(fill = rgb(100/255,225/255,195/255,1)),legend.key.size = unit(0, "cm"))
+
+
+```
+
+
+
+
+
+```{r}
+##PREGUNTA/GRAFICO
+#-¿De donde salen los vuelos con mayor distancia, y que duran un mayor tiempo?
+CantidadDeVuelos=20
+
+ordenadoDis=unique(DataframeTPParte1$Distancia[order(DataframeTPParte1$Distancia,decreasing=T)])
+diezMasDistantes=ordenadoDis[1:CantidadDeVuelos]
+
+ordenadoTiem=unique(DataframeTPParte1$Tiempo.Vuelo[order(DataframeTPParte1$Tiempo.Vuelo,decreasing=T)])
+diezMasDuraderos=ordenadoTiem[1:CantidadDeVuelos]
+
+AerosConMasDistancia<-c(NULL)
+AerosConMasDuracion<-c(NULL)
+for(i in 1:CantidadDeVuelos){
+  for(j in 1:length(DataframeTPParte1$Distancia)){
+     if(DataframeTPParte1$Distancia[j]==diezMasDistantes[i]){
+       AerosConMasDistancia<-rbind(AerosConMasDistancia,DataframeTPParte1[j,])
+       break
+     }
+  }
+  for(j in 1:length(DataframeTPParte1$Tiempo.Vuelo)){
+   if(DataframeTPParte1$Tiempo.Vuelo[j]==diezMasDuraderos[i]){
+     AerosConMasDuracion<-rbind(AerosConMasDuracion,DataframeTPParte1[j,])
+     break
+     }
+  }
+}
+
+#Ejecutar los dos
+#(AerosConMasDistancia[c("Aeropuerto.Despegue","Distancia")])[order(AerosConMasDistancia$Distancia,decreasing = T),]
+ggplot(data = AerosConMasDistancia[c("Aeropuerto.Despegue","Distancia")]) +
+  geom_point(mapping = aes(x = Aeropuerto.Despegue, y = Distancia, color = Aeropuerto.Despegue))+
+  theme(plot.background = element_rect(fill = rgb(10/255,175/255,230/255,1)))+ 
+  theme(panel.background = element_rect(color = "black",
+                                        size = 2))+ labs(x="Aeropuerto",title = "Aeropuerto y Distancia",color="Aeropuerto")
+
+#(AerosConMasDuracion[c("Aeropuerto.Despegue","Tiempo.Vuelo")])[order(AerosConMasDuracion$Tiempo.Vuelo,decreasing = T),]
+ggplot(data = AerosConMasDistancia[c("Aeropuerto.Despegue","Tiempo.Vuelo")]) +
+  geom_point(mapping = aes(x = Aeropuerto.Despegue, y = Tiempo.Vuelo, color = Aeropuerto.Despegue))+
+  theme(plot.background = element_rect(fill = rgb(10/255,175/255,230/255,1)))+ 
+  theme(panel.background = element_rect(color = "black",
+                                        size = 2)) + labs(x="Aeropuerto",y="Tiempo",title = "Aeropuerto y Tiempo",color="Aeropuerto")
+
+p("Observacion: Tiene sentido que los graficos sean parecidos, ya que a mayor distancia los vuelos tenderian a tardar mas proporcionalmente")
+
+```
+
+#MAPA!
+
+```{r}
+require(leaflet)
+library( htmltools )
+require(htmltools)
+## FUNCIONES! ##
+mod=function(x,y){ # Creamos la funcion mod para utilizarla en las conexiones
+(abs(x/y)%%1)*y*sign(x)}
+
+"
+La funcion conexion hara un intercalado entre el vector LongsDeTodos(longitud) anteriormente visto y una longitud fija(repetido_long) que es de la funcion conexion de abajo. Lo mismo sucedera con latitud, esto nos permite mas facilmente realizar las lineas de conexion en el grafico del mapa que se dara en las ultimas lineas de este bloque.
+"
+conexion=function(repetido_long,repetido_lat,longitud,latitud){ #
+  longitud_nueva<-c(NULL)
+  latitud_nueva<-c(NULL)
+  for(i in 1:(2*length(longitud))){
+  if(mod(i,2)==0 ){
+    longitud_nueva<-cbind(longitud_nueva,repetido_long)
+    latitud_nueva<-cbind(latitud_nueva,repetido_lat)
+  }else{
+    longitud_nueva<-cbind(longitud_nueva,longitud[(i+1)/2])
+    latitud_nueva<-cbind(latitud_nueva,latitud[(i+1)/2])
+  }
+  }
+  return(list(longitud_nueva,latitud_nueva))
+}
+
+randomColor=function(){ #Color aleatorio(No tan Oscuros) para las lineas de conexion.
+  return(sample(100:255,1)/255)
+}
+#------#
+
+#Nombres de Ciudad de Aeropuerto
+Nombres<-c(NULL)
+for(i in 1:length(unique(cabotaje$Aeropuerto))){
+  Nombres<-cbind(Nombres,(aeropuertos %>% filter(iko==unique(cabotaje$Aeropuerto)[i]|ita==unique(cabotaje$Aeropuerto)[i]|ana==unique(cabotaje$Aeropuerto)[i]))$Ciudad)
+}
+Nombres=Nombres[1,]
+
+## Grafico mapa! ##
+#Icono Avion
+greenLeafIcon <- makeIcon( 
+  iconUrl = "https://images.vexels.com/media/users/3/153005/isolated/lists/b3c3b1a530afa43f61cf4207c75cc6e0-icono-de-trazo-de-color-de-avion.png",
+  iconWidth = 25, iconHeight = 25,
+  iconAnchorX = 12, iconAnchorY = 12,
+)
+
+#Para configurar el circulo que denota la cantidad de pasajeros totales para cada uno de los aeropuertos del dataframe.
+raizCantidadPorAeropuerto=cantidadPorAeropuerto[[2]]^(1/2)#Se utilizo la raiz para que no tener valores extremos en los radios
+radio_min=6
+radio_max=22
+maximo=max(raizCantidadPorAeropuerto)
+pasajeDeAmarilloARojo=(raizCantidadPorAeropuerto/maximo) #En funcion de la cantidad de pasajeros los circulos cambian de color
+
+#Mapa y configuracion 
+mapa <- leaflet()
+mapa <- addTiles(mapa)
+#Para cada Aeropuerto grafico lineas con todas las conexiones que tiene (Solo de despegue)
+for(i in 1:length(longsDeTodos)){  
+  coordenadas=conexion(dataframe[[2]][i],dataframe[[3]][i],longsDeTodos[[i]][1,],latsDeTodos[[i]][1,]) 
+  mapa <- addPolylines(mapa, lng = coordenadas[[1]][1,], lat = coordenadas[[2]][1,],weight=2,color=rgb(randomColor(),randomColor(),randomColor()),opacity=0.7)#o weig=0.35,opac=1
+}
+
+#Circulos indica cantidad de Pasajeros
+mapa <- addCircleMarkers(mapa, lng=longitud_, lat=latitud_,radius=radio_min+(raizCantidadPorAeropuerto/maximo)*radio_max,color="black",fill=TRUE,fillColor=rgb(T,T-pasajeDeAmarilloARojo,F),fillOpacity=0.7,opacity = 1,weight=1)
+
+
+#Texto indica ciudad del Aeropuerto.Detalle:Duplicado con color opuesto para generar contraste
+mapa <-  addCircleMarkers(mapa, lng=dataframe[[2]], lat=dataframe[[3]],label=Nombres,radius=F,opacity=0,labelOptions = labelOptions(noHide = TRUE,textOnly = TRUE,direction = "bottom",style = list(
+        "font-size" = "9.5px" ,"font-family"="Arial Black","color"="white")))
+mapa <-  addCircleMarkers(mapa, lng=dataframe[[2]], lat=dataframe[[3]],label=Nombres,radius=F,opacity=0,labelOptions = labelOptions(noHide = TRUE,textOnly = TRUE,direction = "bottom",style = list(
+        "font-size" = "9px" ,"font-family"="Arial Black","color"="blue")))
+
+#Texto indica cantidad pasajeros. Detalle:Duplicado con color opuesto para generar contraste
+mapa <- addLabelOnlyMarkers(mapa, lng=dataframe[[2]], lat=dataframe[[3]], label = paste0("Tot: ",as.character(ceiling(cantidadPorAeropuerto[[2]]))),
+                      labelOptions = labelOptions(noHide = T,direction = 'top', textOnly = T,textsize = 12,style = list("color"="white","font-size" = "9.5px","font-family"="Arial Black")))
+mapa <- addLabelOnlyMarkers(mapa, lng=dataframe[[2]], lat=dataframe[[3]], label = paste0("Tot: ",as.character(ceiling(cantidadPorAeropuerto[[2]]))),
+                      labelOptions = labelOptions(noHide = T,direction = 'top', textOnly = T,textsize = 12,style = list("color"="black","font-size" = "9px","font-family"="Arial Black")))
+
+#Icono Avion
+mapa <- addMarkers(mapa, lng=dataframe[[2]], lat=dataframe[[3]],icon=greenLeafIcon)
+
+#Grafico del mapa es por despegue
+mapa
+#-#
+
+```
+
+
+
+
+```{r}
+
+library(ggplot2)
+library(scales)
+
+## Complemento al mapa! (1):¿Que y cuantos Aeropuertos tienen más conexiones que la media?
+conexion_cadauno<-c()
+for(i in 1:length(conexiones)){
+  conexion_cadauno<-cbind(conexion_cadauno,length(conexiones[[i]]))
+}
+conexion_cadauno=conexion_cadauno[1,]
+
+AeropuertosConexiones=data.frame(Nombres,conexion_cadauno)
+AeropuertosConexiones=AeropuertosConexiones %>% filter(conexion_cadauno>=mean(AeropuertosConexiones$conexion_cadauno))
+
+porcentaje=AeropuertosConexiones[[2]]/sum(AeropuertosConexiones[[2]])
+
+ggplot(AeropuertosConexiones,aes(x=2,y=porcentaje, fill=Nombres))+
+  geom_bar(stat = "identity",color="white")+geom_text(aes(label=AeropuertosConexiones[[2]]),
+              position=position_stack(vjust=0.5),color="white",size=6)+
+  coord_polar(theta="y")+
+  coord_polar(theta = "y")+
+    labs(title="              Cantidad de destinos en los Aeropuertos",subtitle = "      contemplacion de aquellos con mas conexiones que la media",fill="Aeropuertos")+theme_void()+
+  xlim(0.5,2.5)+
+  theme( plot.background = element_rect(fill=rgb(255/255,255/255,170/255,1)),panel.grid.major.x = element_line(color = rgb(.7,.7,.7,.1),
+                                        size = 1,
+                                        linetype = "solid"))
+
+
+```
+
+
+```{r}
+#Complemento mapa!(2): Grafico de barras,cantidad de pasajeros por ciudad
+NombresOrdenado=Nombres[order(cantidadPorAeropuerto[[2]],decreasing=T)]
+ViajerosTotalOrdenado=cantidadPorAeropuerto[[2]][order(cantidadPorAeropuerto[[2]],decreasing=T)]
+
+ggplot(mapping = aes(x = NombresOrdenado , y = (ViajerosTotalOrdenado/1e5))) + 
+    geom_bar(stat="identity", position="dodge",color=rainbow(38)) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))+
+  theme( plot.background = element_rect(fill=rgb(T*3/5,T,T*3/5)),panel.grid.major.x = element_line(color = rgb(.7,.7,.7,.1),size = 1,linetype = "solid"),legend.key.size = unit(0.1, "cm"))+
+  theme(panel.background = element_rect(fill = rgb(T/2,T/2,T/2,1)))+theme(panel.border = element_rect(fill = "transparent",color = 4,size = 2))+
+    labs(title="Cantidad de pasajeros por ciudad",y="Cantidad Pasajeros(en miles)",x="Ciudad")
+
+#¿Cuales son las cinco(u otra cantidad) ciudades con mayor cantidad de pasajeros?
+cantidadCiudades=5
+top5AerolineasPasajeros=data.frame(NombresOrdenado,ViajerosTotalOrdenado)[1:cantidadCiudades,]
+p(top5AerolineasPasajeros)
+
+#Grafico que muestra el top5
+ggplot(top5AerolineasPasajeros,aes(x=2,y=ViajerosTotalOrdenado, fill=NombresOrdenado))+
+  geom_bar(stat = "identity",
+           color="white")+
+    geom_text(aes(label=ViajerosTotalOrdenado),
+              position=position_stack(vjust=0.5),color=rgb(T,T,T/2),size=6)+
+  coord_polar(theta = "y")+
+  scale_fill_manual(values=1:5)+
+    theme_void()+
+    labs(title="Total Pasajeros por aerolinea",fill="Aeropuerto")+
+  xlim(0.5,2.5)+
+  theme(plot.background = element_rect(fill=rgb(T/2,T/2,T/2,1)))
+
+```
+
+```{r}
+#Tambien se realizo un grafo para entender mejor la relaciones entre los mismos
+require(tidyverse)
+require(igraph)
+require(tidygraph)
+require(ggraph)
+require(tidyverse)
+require(visNetwork)
+
+
+cabotajeGrafo = vuelos_dataframe %>% filter(ClasificacionVuelo == 'Dom' , ClaseVuelo == 'Regular' , Tipomovimiento == 'Despegue' , Aeronave != '0' , Pasajeros != 0) %>% select(Aeropuerto , Origen_Destino)
+
+grafoAeropuerto = cabotajeGrafo %>% graph_from_data_frame(directed = FALSE) %>% as_tbl_graph()
+grafoAeropAdyacente = as_adjacency_matrix(grafoAeropuerto) %>% graph_from_adjacency_matrix(weighted = T) %>% as_tbl_graph()
+grafoAeropAdyacente = grafoAeropAdyacente %>% activate(nodes) %>% mutate(grado = degree(grafoAeropAdyacente) , fuerza = strength(grafoAeropAdyacente), ratio = fuerza/grado) %>% activate(edges) 
+
+#Paso final para crear el grafo!
+grafoAeropuertos<-graph.star(7)
+grafoAeropuertos<-grafoAeropAdyacente %>% activate(nodes) %>% mutate(label = name , size = log(grado))
+constanteNodo=1
+V(grafoAeropuertos)$size=(V(grafoAeropuertos)$size)*constanteNodo# <- Para hacer notar mas los nodos
+V(grafoAeropuertos)$color<-topo.colors(44)
+V(grafoAeropuertos)$label.color<-"red"
+E(grafoAeropuertos)$width<-1
+visIgraph(grafoAeropuertos,layout='layout_nicely',physics=T)%>% visEdges(arrows = list(to = list(enabled = TRUE, scaleFactor = 0.1))) 
+
+```
+
+

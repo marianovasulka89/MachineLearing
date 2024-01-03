@@ -1,0 +1,56 @@
+id,cpr,pais,nam,fna,fuc,ose,iko,ita,ana,thr,nom_ciudad,x,y
+15,Santa Cruz,Argentina,El Calafate,Aeropuerto de El Calafate Comandante Armando Tola,,London Supply S.A.C.I.FI.,SAWC,FTE,ECA,NAC,El Calafate,-72.05304518405136,-50.28034888947778
+68,Tierra Del Fue,Argentina,Ushuaia,Aeropuerto de Ushuaia Malvinas Argentinas,,London Supply S.A.C.I.FI.,SAWH,USH,USU,INTL,Ushuaia,-68.30810498611865,-54.843586400884604
+46,Santa cruz,Argentina,Rio Gallegos,Aeropuerto de RÃ­o Gallegos Piloto Civil Norberto FernÃḂndez,,AA2000,SAWG,RGL,GAL,INTL,RÃ­o Gallegos,-69.30791890262672,-51.60895079622087
+47,Tierra Del Fue,Argentina,RÃ­o Grande,Aeropuerto de Rio Grande Gob. RamÃġn Trejo Noel,,AA2000,SAWE,RGA,GRA,INTL,RÃ­o Grande,-67.75308297707619,-53.777840238797936
+17,Chubut,Argentina,Esquel,Aeropuerto de Esquel Brigadier General Antonio Parodi,,AA2000,SAVE,EQS,ESQ,NAC,Esquel,-71.13665178216398,-42.90470831072245
+4,RÃ­o Negro,Argentina,San Carlos de Bariloche,Aeropuerto de San Carlos de Bariloche Teniente Luis Candelaria,,AA2000,SAZS,BRC,BAR,INTL,Bariloche,-71.1593078789764,-41.15031943377299
+7,NeuquÃ©n,Argentina,San MartÃ­n de los Andes,Aeropuerto de Chapelco Aviador Carlos Campos,,Dir. Provincial de AeronÃḂutica de NeuquÃ©n,SAZY,CPC,CHP,NAC,Chapelco,-71.14068085201642,-40.07670104242249
+33,NeuquÃ©n,Argentina,NeuquÃ©n,Aeropuerto de Neuquen Presidente PerÃġn,,Aeropuertos del NeuquÃ©n S.A,SAZN,NQN,NEU,INTL,NeuquÃ©n,-68.15443619906651,-38.94894621212032
+59,Mendoza,Argentina,San Rafael,Aeropuerto de San Rafael Santiago Germano,,AA2000,SAMR,AFA,SRA,NAC,San Rafael,-68.40319986823552,-34.58831536958247
+31,Mendoza,Argentina,Mendoza,Aeropuerto de Mendoza Francisco Gabrielli - El Plumerillo,con vuelos internacionales,AA2000,SAME,MDZ,DOZ,INTL,Mendoza,-68.79386104979281,-32.83040284073422
+56,San Juan,Argentina,San Juan,Aeropuerto de San Juan Domingo Faustino Sarmiento,,AA2000,SANU,UAQ,JUA,NAC,San Juan,-68.41877525414593,-31.569910234098103
+65,Chubut,Argentina,Trelew,Aeropuerto de Trelew Almirante Zar,,London Supply S.A.C.I.FI.,SAVT,REL,TRE,INTL,Trelew,-65.26869890641582,-43.211830378897574
+41,Chubut,Argentina,Puerto Madryn,Aeropuerto de Puerto Madryn El Tehuelche,,AA2000,SAVY,PMY,DRY,NAC,Puerto Madryn,-65.10349769084932,-42.75881165830642
+69,RÃ­o Negro,Argentina,Viedma,Aeropuerto de Viedma Gobernador Edgardo Castello,,AA2000,SAVV,VDM,VIE,NAC,Viedma,-62.99926721456352,-40.86989467228366
+63,La Pampa,Argentina,Santa Rosa,Aeropuerto de Santa Rosa,,AA2000,SAZR,RSA,OSA,NAC,Santa Rosa,-64.27484507394487,-36.585780043063004
+3,Buenos Aires,Argentina,BahÃ­a Blanca,Aeropuerto de BahÃ­a Blanca Comandante Espora,,Aeropuerto BahÃ­a Blanca S.A.,SAZB,BHI,BCA,NAC,BahÃ­a Blanca,-62.15379847934545,-38.7236753422101
+32,Buenos Aires,Argentina,Necochea,Aeropuerto de Necochea Edgardo Hugo Yelpo,sin vuelos regulares,Provincia de Buenos Aires,SAZO,NEC,NEC,NAC,Necochea,-58.81389387676821,-38.489014031346635
+30,Buenos Aires,Argentina,Mar del Plata,Aeropuerto de Mar del Plata Astor Piazzola,,AA2000,SAZM,MDQ,MDP,INTL,Mar del Plata,-57.574044997935644,-37.93211301775344
+1,Capital Federa,Argentina,Buenos Aires,Aeroparque Jorge Newberry,con vuelos internacionales,AA2000,SABE,AEP,AER,INTL,Aeroparque,-58.413428,-34.560554
+58,San Luis,Argentina,San Luis,Aeropuerto de San Luis Brigadier Mayor CÃ©sar Ojeda,,AA2000,SAOU,LUQ,UIS,NAC,San Luis,-66.35628053283388,-33.27308704479725
+28,La Rioja,Argentina,La Rioja,Aeropuerto de La Rioja CapitÃḂn Vicente A. Almonacid,,AA2000,SANL,IRJ,LAR,NAC,La Rioja,-66.79234889357927,-29.37452466922506
+10,CÃġrdoba,Argentina,CÃġrdoba,Aeropuerto de CÃġrdoba Ing. A. Taravella - Pajas Blancas,con vuelos internacionales,AA2000,SACO,COR,CBA,INTL,CÃġrdoba,-64.20820323418707,-31.31558087760009
+6,Catamarca,Argentina,Catamarca,Aeropuerto de Catamarca Coronel Felipe Varela,,AA2000,SANC,CTC,CAT,NAC,Catamarca,-65.75271079001757,-28.594315545455707
+67,Tucuman,Argentina,Tucuman,Aeropuerto de TucumÃḂn BenjamÃ­n Matienzo,,AA2000,SANT,TUC,TUC,INTL,San Miguel de TucumÃḂn,-65.10225446667454,-26.835503408966808
+54,Sgo. del Ester,Argentina,Santiago del Estero,Aeropuerto de Santiago del Estero Vcom. Angel de la Paz Aragones,,AA2000,SANE,SDE,SDE,NAC,Santiago del Estero,-64.31002111583831,-27.766069669309626
+50,Santa Fe,Argentina,Rosario,Aeropuerto de Rosario Islas Malvinas,con vuelos internacionales,Ente Tripartito AIR,SAAR,ROS,ROS,INTL,Rosario,-60.78523155470429,-32.90972096626273
+61,Santa Fe,Argentina,Santa Fe,Aeropuerto de Santa Fe,,Provincia de Santa Fe,SAAV,SFN,SVO,NAC,Santa Fe,-60.81180148851709,-31.711417068196507
+35,Entre RÃ­os,Argentina,ParanÃḂ,Aeropuerto de ParanÃḂ Gral. Urquiza,,AA2000,SAAP,PRA,PAR,NAC,ParanÃḂ,-60.48048125528696,-31.79601969516808
+44,Chaco,Argentina,Resistencia,Aeropuerto de Resistencia Jose de San MartÃ­n,,AA2000,SARE,RES,SIS,INTL,Resistencia,-59.05723673580053,-27.452767278059294
+12,Corrientes,Argentina,Corrientes,Aeropuerto de Corrientes Dr. Fernando Piragine Niveyro,,Dir. Aeronautica Provincia de Corrientes,SARC,CNQ,CRR,INTL,Corrientes,-58.76200006073081,-27.448176340619145
+55,Salta,Argentina,Salta,Aeropuerto de Salta MartÃ­n Miguel de GÃỳemes,con vuelos internacionales,AA2000,SASA,SLA,SAL,INTL,Salta,-65.48438724469551,-24.85377983902201
+27,Jujuy,Argentina,Jujuy,Aeropuerto de Jujuy El Cadillal - Gobernador Guzman,,AA2000,SASJ,JUJ,JUJ,INTL,S. S. de Jujuy,-65.09910942439882,-24.389859402404774
+19,Formosa,Argentina,Formosa,Aeropuerto de Formosa El Pucu,,AA2000,SARF,FMA,FSA,INTL,Formosa,-58.22678645576402,-26.214076327854627
+38,Misiones,Argentina,Posadas,Aeropuerto de Posadas Libertador General San Martin,,AA2000,SARP,PSS,POS,INTL,Posadas,-55.97122208538893,-27.389104
+25,Misiones,Argentina,IguazÃẃ,Aeropuerto de Cataratas del IguazÃẃ,con vuelos internacionales,AA2000,SARI,IGR,IGU,INTL,IguazÃẃ,-54.47583144869375,-25.734474947478017
+155,Buenos Aires,Argentina,Ezeiza,Aeropuerto de Ezeiza Ministro Pistarini,con vuelos internacionales,AA2000,SAEZ,EZE,EZE,INTL,Ezeiza,-58.542461865561364,-34.812287473439504
+121,Chubut,Argentina,Comodoro Rivadavia,Aeropuerto de Comodoro Rivadavia General Enrique Mosconi,,AA2000,SAVC,CRD,CRV,INTL,Comodoro Rivadavia,-67.46553279460962,-45.78494248652403
+123,Entre RÃ­os,Argentina,Concordia,Aeropuerto de Concordia Comodoro Juan JosÃ© Pierrestegui,sin vuelos regulares,Municipalidad de Concordia,SAAC,COC,DIA,NAC,Concordia,-57.997305,-31.29702012836899
+125,La Pampa,Argentina,General Pico,Aeropuerto de General Pico,sin vuelos regulares,AA2000,SAZG,GPO,GPI,NAC,Gral. Pico,-63.75972322219686,-35.69126094473591
+127,RÃ­o Negro,Argentina,General Roca,Aeropuerto de Gral. Roca Dr. Arturo H. Illia,sin vuelos regulares,Aero Club General Roca,SAHR,GNR,GNR,NAC,Gral. Roca,-67.61889255507985,-38.999443252004646
+129,Buenos Aires,Argentina,Junin,Aeropuerto de Junin,sin vuelos regulares,Municipalidad de Junin,SAAJ,JNI,NIN,NAC,JunÃ­n,-60.93012358057873,-34.54567602427661
+131,Buenos Aires,Argentina,La Plata,Aeropuerto de La Plata,sin vuelos regulares,Provincia de Buenos Aires,SADL,LPG,PTA,NAC,La Plata,-57.89538079028936,-34.97610933109367
+133,Mendoza,Argentina,Malargue,Aeropuerto de MalargÃỳe Comodoro D. Ricardo Salomon,sin vuelos regulares,AA2000,SAMM,LGS,MLG,NAC,MalargÃỳe,-69.58019922520845,-35.48641058935752
+135,Corrientes,Argentina,Paso de los Libres,Aeropuerto de Paso de los Libres,sin vuelos regulares,AdministraciÃġn Nacional de AviaciÃġn Civil (ANAC),SARL,AOL,LIB,INTL,Paso de los Libres,-57.152067419421286,-29.689268507748903
+137,Santa Fe,Argentina,Reconquista,Aeropuerto de Reconquista,,AA2000,SATR,RCQ,RTA,NAC,Reconquista,-59.68138908166927,-29.21045707111053
+139,Cordoba,Argentina,RÃ­o Cuarto,Aeropuerto de Rio Cuarto - Ãrea de Material,,AA2000,SAOC,RCU,TRC,NAC,RÃ­o Cuarto,-64.2692882582764,-33.09433597571817
+141,Buenos Aires,Argentina,San Fernando,Aeropuerto de San Fernando,sin vuelos regulares,AA2000,SADF,FDO,FDO,INTL,San Fernando,-58.58913955297556,-34.45309358485369
+143,Buenos Aires,Argentina,Santa Teresita,Aeropuerto de Santa Teresita,sin vuelos regulares,Municipalidad de La Costa,SAZL,SST,STR,NAC,Santa Teresita,-56.72030577814635,-36.5425734151463
+145,Buenos Aires,Argentina,Tandil,Aeropuerto de Tandil,sin vuelos regulares,Provincia de Buenos Aires,SAZT,TDL,DIL,NAC,Tandil,-59.22881289443511,-37.23622057975411
+147,Salta,Argentina,Gral. E. Mosconi,Aeropuerto de Tartagal Gral Enrique Mosconi,sin vuelos regulares,Provincia de Salta,SAST,TTG,TAR,NAC,Tartagal,-63.793726869974215,-22.618638295242434
+151,Buenos Aires,Argentina,Villa Gesell,Aeropuerto de Villa Gesell,sin vuelos regulares,Municipalidad de Villa Gesell,SAZV,VLG,GES,NAC,Villa Gesell,-57.02912394808962,-37.23491520247535
+153,San Luis,Argentina,Villa Mercedes,Aeropuerto de Villa Reynolds,sin vuelos regulares,AA2000,SAOR,VME,RYD,NAC,Villa Mercedes,-65.38612810493274,-33.729806828699544
+154,Sgo. del Ester,Argentina,RÃ­o Hondo,Aeropuerto de Termas de RÃ­o Hondo,Inaugurado 24/07/2012,AA2000,SANR,RHD,RHD,NAC,RÃ­o Hondo,-64.93794009624844,-27.509027634214064
+157,Santa Cruz,Argentina,El Turbio/28 de Noviembre,Aeropuerto de RÃ­o Turbio/28 de Noviembre,Incorporado el 29/04/2015,Municipio de 28 de Noviembre,SAWT,RYO,BIO,NAC,El Turbio/28 de Noviembre,-72.2237137399497,-51.60478579302238
+156,Buenos Aires,Argentina,Buenos Aires,Aeropuerto El Palomar,Incorporado el 26/12/2017,AA2000,SADP,EPA,PAL,NAC,El Palomar,-58.60452790226557,-34.61023519799679
